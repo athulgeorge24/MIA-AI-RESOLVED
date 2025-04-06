@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MIA AI</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+  <div class="header">
+    <h1>MIA AI (Prototype)</h1>
+    <div class="controls">
+      <button id="theme-toggle-btn" title="Toggle Theme">
+        <i class="fas fa-moon"></i>
+      </button>
+      <select id="model-select" title="Select AI Model">
+        <option value="llama3-8b-8192" selected>MIA 2.5o</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="chat-container">
+      <div class="chat-window">
+        <div class="chat-messages" id="response-area">
+          <p class="placeholder-text">Watch MIA AI work its magic—your truth-checked response will appear here...</p>
+        </div>
+
+        <div class="input-bar">
+          <textarea id="prompt-input" placeholder="Enter your myth/fake content here..."></textarea>
+          <button id="submit-btn" title="Send Prompt">
+            <i class="fas fa-paper-plane"></i> Generate
+          </button>
+          <button id="clear-btn" title="Clear">
+            <i class="fas fa-eraser"></i> Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API key injection for dev -->
+  <script>
+    window.process = { 
+      env: { 
+        GROQ_API_KEY: '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'
+      } 
+    };
+
+    // Load main script
+    const script = document.createElement('script');
+    script.src = 'app.js';
+    document.body.appendChild(script);
+  </script>
+
+  <section class="info-section inline-info">
+    <h6><a href="#">About Us</a></h6>
+    <span class="divider"> | </span>
+    <h6><a href="#">Help</a></h6>
+    <span class="divider"> | </span>
+    <h6><a href="#">Privacy Policy</a></h6>
+    <span class="divider"> | </span>
+    <h6><a href="#">Terms of Service</a></h6>
+    <span class="divider"> | </span>
+    <h6><a href="#">Contact Us</a></h6>
+
+
+  </section>
+  <p class="powered-text">Powered by: Project De Fake Bot</p>
+</body>
+</html>

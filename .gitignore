@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Node modules (if you use them later)
+node_modules/
+
+# Build files
+dist/
+build/
+
+# Log files
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
