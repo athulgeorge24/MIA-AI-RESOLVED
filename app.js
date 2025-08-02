@@ -1,7 +1,4 @@
-// Load API key from environment variable or localStorage
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-let API_KEY = process.env.GROQ_API_KEY || localStorage.getItem('GROQ_API_KEY');
 
 // DOM Elements
 const modelSelect = document.getElementById('model-select');
@@ -14,23 +11,39 @@ const responseArea = document.getElementById('response-area');
 // App State
 let currentModel = 'llama3-8b-8192';
 let isDarkTheme = false;
+let API_KEY = null;
 
-// Check if API key is available or prompt user to enter it
+// === API Key Handling ===
+function encryptKey(key) {
+    return btoa(key); // Base64 encode
+}
+
+function decryptKey(encoded) {
+    return atob(encoded);
+}
+
 function checkApiKey() {
-    API_KEY = localStorage.getItem('GROQ_API_KEY');
-    if (!API_KEY) {
-        const apiKeyPrompt = prompt('Please enter your Groq API key:');
-        if (apiKeyPrompt) {
-            localStorage.setItem('GROQ_API_KEY', apiKeyPrompt.trim());
-            API_KEY = apiKeyPrompt.trim();
-            window.location.reload();
-        } else {
-            responseArea.innerHTML = `<p class="error">Error: API key not provided. You can get a Groq API key from <a href="https://console.groq.com/" target="_blank">https://console.groq.com/</a></p>`;
-        }
+    const encodedKey = sessionStorage.getItem('GROQ_API_KEY');
+    if (!encodedKey) {
+        showApiKeyPrompt();
+    } else {
+        API_KEY = decryptKey(encodedKey);
     }
 }
 
-// Load preferences
+function showApiKeyPrompt() {
+    const apiKeyPrompt = prompt('Enter your Groq API key:');
+    if (apiKeyPrompt) {
+        const encrypted = encryptKey(apiKeyPrompt.trim());
+        sessionStorage.setItem('GROQ_API_KEY', encrypted);
+        API_KEY = apiKeyPrompt.trim();
+        window.location.reload();
+    } else {
+        responseArea.innerHTML = `<p class="error">API key required. Get one from <a href="https://console.groq.com/" target="_blank">Groq Console</a></p>`;
+    }
+}
+
+// === Preferences ===
 function loadSavedPreferences() {
     checkApiKey();
 
@@ -52,18 +65,16 @@ function loadSavedPreferences() {
     }
 }
 
-// Save preferences
 function savePreferences() {
     localStorage.setItem('model', currentModel);
     localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
 }
 
-// Generate AI response
+// === Response Generation ===
 async function generateResponse(prompt) {
     try {
-        const currentApiKey = localStorage.getItem('GROQ_API_KEY');
-        if (!currentApiKey) {
-            checkApiKey();
+        if (!API_KEY || API_KEY.length < 10) {
+            showApiKeyPrompt();
             return;
         }
 
@@ -78,7 +89,7 @@ async function generateResponse(prompt) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentApiKey}`
+                'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
                 model: currentModel,
@@ -91,14 +102,15 @@ async function generateResponse(prompt) {
             })
         });
 
+        responseArea.removeChild(loadingMsg);
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Raw error:", errorText);
 
-            // Remove key if auth fails
             if (response.status === 401 || errorText.includes('invalid') || errorText.includes('key')) {
-                localStorage.removeItem('GROQ_API_KEY');
-                responseArea.innerHTML = `<p class="error">Error: Invalid API key. Refresh the page and enter a new one.</p>`;
+                sessionStorage.removeItem('GROQ_API_KEY');
+                responseArea.innerHTML = `<p class="error">Error: Invalid API key. Please refresh and enter a new one.</p>`;
             } else {
                 responseArea.innerHTML = `<p class="error">Error: ${errorText}</p>`;
             }
@@ -136,12 +148,11 @@ async function generateResponse(prompt) {
     }
 }
 
-// Format response (code blocks etc.)
+// === Helpers ===
 function formatResponse(text) {
     return text.replace(/```([a-z]*)\n?([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>');
 }
 
-// Theme toggle
 function toggleTheme() {
     isDarkTheme = !isDarkTheme;
     document.body.classList.toggle('dark-theme', isDarkTheme);
@@ -149,7 +160,11 @@ function toggleTheme() {
     savePreferences();
 }
 
-// Event listeners
+function scrollToBottom() {
+    responseArea.scrollTop = responseArea.scrollHeight;
+}
+
+// === Event Listeners ===
 submitBtn.addEventListener('click', () => {
     const prompt = promptInput.value.trim();
     if (prompt) {
@@ -185,9 +200,14 @@ promptInput.addEventListener("keydown", (e) => {
     }
 });
 
-function scrollToBottom() {
-    responseArea.scrollTop = responseArea.scrollHeight;
+// Optional: Add a "Change API Key" button if you include it in HTML
+const changeKeyBtn = document.getElementById('change-key-btn');
+if (changeKeyBtn) {
+    changeKeyBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('GROQ_API_KEY');
+        showApiKeyPrompt();
+    });
 }
 
-// Initialize app
+// === Init ===
 loadSavedPreferences();
