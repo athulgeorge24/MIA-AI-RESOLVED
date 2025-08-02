@@ -11,42 +11,9 @@ const responseArea = document.getElementById('response-area');
 // App State
 let currentModel = 'llama3-8b-8192';
 let isDarkTheme = false;
-let API_KEY = null;
-
-// === API Key Handling ===
-function encryptKey(key) {
-    return btoa(key); // Base64 encode
-}
-
-function decryptKey(encoded) {
-    return atob(encoded);
-}
-
-function checkApiKey() {
-    const encodedKey = sessionStorage.getItem('GROQ_API_KEY');
-    if (!encodedKey) {
-        showApiKeyPrompt();
-    } else {
-        API_KEY = decryptKey(encodedKey);
-    }
-}
-
-function showApiKeyPrompt() {
-    const apiKeyPrompt = prompt('Enter your Groq API key:');
-    if (apiKeyPrompt) {
-        const encrypted = encryptKey(apiKeyPrompt.trim());
-        sessionStorage.setItem('GROQ_API_KEY', encrypted);
-        API_KEY = apiKeyPrompt.trim();
-        window.location.reload();
-    } else {
-        responseArea.innerHTML = `<p class="error">API key required. Get one from <a href="https://console.groq.com/" target="_blank">Groq Console</a></p>`;
-    }
-}
 
 // === Preferences ===
 function loadSavedPreferences() {
-    checkApiKey();
-
     const savedModel = localStorage.getItem('model');
     if (savedModel) {
         currentModel = savedModel;
@@ -73,11 +40,6 @@ function savePreferences() {
 // === Response Generation ===
 async function generateResponse(prompt) {
     try {
-        if (!API_KEY || API_KEY.length < 10) {
-            showApiKeyPrompt();
-            return;
-        }
-
         const loadingMsg = document.createElement('p');
         loadingMsg.className = 'loading';
         loadingMsg.textContent = 'Generating response...';
@@ -88,8 +50,7 @@ async function generateResponse(prompt) {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: currentModel,
@@ -107,13 +68,7 @@ async function generateResponse(prompt) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Raw error:", errorText);
-
-            if (response.status === 401 || errorText.includes('invalid') || errorText.includes('key')) {
-                sessionStorage.removeItem('GROQ_API_KEY');
-                responseArea.innerHTML = `<p class="error">Error: Invalid API key. Please refresh and enter a new one.</p>`;
-            } else {
-                responseArea.innerHTML = `<p class="error">Error: ${errorText}</p>`;
-            }
+            responseArea.innerHTML = `<p class="error">Error: ${errorText}</p>`;
             return;
         }
 
@@ -199,15 +154,6 @@ promptInput.addEventListener("keydown", (e) => {
         submitBtn.click();
     }
 });
-
-// Optional: Add a "Change API Key" button if you include it in HTML
-const changeKeyBtn = document.getElementById('change-key-btn');
-if (changeKeyBtn) {
-    changeKeyBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('GROQ_API_KEY');
-        showApiKeyPrompt();
-    });
-}
 
 // === Init ===
 loadSavedPreferences();
