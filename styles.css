@@ -231,3 +231,7 @@ body.dark-theme #change-key-btn {
   color: #555;
   text-align: center;
 }
+.api-status {
+  font-size: 0.9rem;
+  color: #ccc;
+}
