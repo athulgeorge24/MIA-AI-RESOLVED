@@ -1,22 +1,26 @@
-# Environment variables
-.env
-
-# Node modules (if you use them later)
+# === Node.js / Build Tools (optional for future use) ===
 node_modules/
-
-# Build files
 dist/
 build/
+.env
 
-# Log files
+# === Logs ===
 *.log
 
-# IDE and editor files
+# === OS-specific files ===
+.DS_Store
+Thumbs.db
+
+# === IDE/editor files ===
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS files
-.DS_Store
-Thumbs.db
+# === System backups ===
+*.bak
+*.tmp
+
+# === Optional: Cache or generated files ===
+.cache/
+*.cache
