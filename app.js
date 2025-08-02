@@ -1,6 +1,7 @@
-// Load API key from environment variable or prompt the user if not found
-const API_KEY = process.env.GROQ_API_KEY || localStorage.getItem('GROQ_API_KEY');
+// Load API key from environment variable or localStorage
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+let API_KEY = process.env.GROQ_API_KEY || localStorage.getItem('GROQ_API_KEY');
 
 // DOM Elements
 const modelSelect = document.getElementById('model-select');
@@ -16,13 +17,12 @@ let isDarkTheme = false;
 
 // Check if API key is available or prompt user to enter it
 function checkApiKey() {
+    API_KEY = localStorage.getItem('GROQ_API_KEY');
     if (!API_KEY) {
         const apiKeyPrompt = prompt('Please enter your Groq API key:');
-        
         if (apiKeyPrompt) {
-            // Save API key to localStorage for future use
-            localStorage.setItem('GROQ_API_KEY', apiKeyPrompt);
-            // Reload the page to use the new API key
+            localStorage.setItem('GROQ_API_KEY', apiKeyPrompt.trim());
+            API_KEY = apiKeyPrompt.trim();
             window.location.reload();
         } else {
             responseArea.innerHTML = `<p class="error">Error: API key not provided. You can get a Groq API key from <a href="https://console.groq.com/" target="_blank">https://console.groq.com/</a></p>`;
@@ -30,7 +30,7 @@ function checkApiKey() {
     }
 }
 
-// Load saved preferences from localStorage
+// Load preferences
 function loadSavedPreferences() {
     checkApiKey();
 
@@ -40,9 +40,8 @@ function loadSavedPreferences() {
         modelSelect.value = currentModel;
     }
 
-    // Set default theme to dark mode if no theme is saved
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || !savedTheme) { // Default to dark mode if no theme is saved
+    if (savedTheme === 'dark' || !savedTheme) {
         isDarkTheme = true;
         document.body.classList.add('dark-theme');
         themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
@@ -53,34 +52,28 @@ function loadSavedPreferences() {
     }
 }
 
-// Save preferences to localStorage
+// Save preferences
 function savePreferences() {
     localStorage.setItem('model', currentModel);
     localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
-
-    // Ensure the default theme is set to dark if no theme exists
-    if (!localStorage.getItem('theme')) {
-        localStorage.setItem('theme', 'dark');
-    }
 }
 
 // Generate AI response
 async function generateResponse(prompt) {
     try {
-        const currentApiKey = process.env.GROQ_API_KEY || localStorage.getItem('GROQ_API_KEY');
-        
+        const currentApiKey = localStorage.getItem('GROQ_API_KEY');
         if (!currentApiKey) {
             checkApiKey();
             return;
         }
-        
+
         const loadingMsg = document.createElement('p');
         loadingMsg.className = 'loading';
         loadingMsg.textContent = 'Generating response...';
         responseArea.appendChild(loadingMsg);
         scrollToBottom();
         submitBtn.disabled = true;
-        
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
@@ -97,23 +90,29 @@ async function generateResponse(prompt) {
                 max_tokens: 1024
             })
         });
-        
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'API request failed');
+            const errorText = await response.text();
+            console.error("Raw error:", errorText);
+
+            // Remove key if auth fails
+            if (response.status === 401 || errorText.includes('invalid') || errorText.includes('key')) {
+                localStorage.removeItem('GROQ_API_KEY');
+                responseArea.innerHTML = `<p class="error">Error: Invalid API key. Refresh the page and enter a new one.</p>`;
+            } else {
+                responseArea.innerHTML = `<p class="error">Error: ${errorText}</p>`;
+            }
+            return;
         }
-        
+
         const data = await response.json();
         const aiResponse = data.choices[0].message.content;
-        
+
         const aiBubble = document.createElement('div');
         aiBubble.className = 'message ai-message chat-bubble';
         aiBubble.innerHTML = formatResponse(aiResponse);
         responseArea.appendChild(aiBubble);
         scrollToBottom();
-        
-        const loadingEl = document.getElementById('loading-message');
-        if (loadingEl) loadingEl.remove();
 
         const copyButton = document.createElement('button');
         copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy';
@@ -125,29 +124,24 @@ async function generateResponse(prompt) {
                 copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy';
             }, 2000);
         });
-        
+
         responseArea.appendChild(copyButton);
-        
+
     } catch (error) {
-        if (error.message.includes('API key') || error.message.includes('authentication') || error.message.includes('Authorization')) {
-            localStorage.removeItem('GROQ_API_KEY');
-            responseArea.innerHTML = `<p class="error">Error: Invalid API key. Please refresh the page to enter a new key.</p>`;
-        } else {
-            responseArea.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-        }
+        console.error("JS Error:", error);
+        responseArea.innerHTML = `<p class="error">Error: ${error.message}</p>`;
     } finally {
         submitBtn.disabled = false;
         promptInput.focus();
     }
 }
 
-// Format the AI response with HTML
+// Format response (code blocks etc.)
 function formatResponse(text) {
-    text = text.replace(/```([a-z]*)([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>');
-    return text;
+    return text.replace(/```([a-z]*)\n?([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>');
 }
 
-// Toggle theme
+// Theme toggle
 function toggleTheme() {
     isDarkTheme = !isDarkTheme;
     document.body.classList.toggle('dark-theme', isDarkTheme);
@@ -155,7 +149,7 @@ function toggleTheme() {
     savePreferences();
 }
 
-// Event Listeners
+// Event listeners
 submitBtn.addEventListener('click', () => {
     const prompt = promptInput.value.trim();
     if (prompt) {
@@ -163,11 +157,8 @@ submitBtn.addEventListener('click', () => {
         userBubble.className = 'message user-message chat-bubble';
         userBubble.textContent = prompt;
         responseArea.appendChild(userBubble);
-
         scrollToBottom();
-
         promptInput.value = '';
-
         generateResponse(prompt);
     }
 });
@@ -184,23 +175,19 @@ modelSelect.addEventListener('change', (e) => {
 
 themeToggleBtn.addEventListener('click', toggleTheme);
 
-// Initialize the app
-loadSavedPreferences();
+promptInput.addEventListener("keydown", (e) => {
+    const isEnter = e.key === "Enter";
+    const isShiftEnter = e.shiftKey && isEnter;
+
+    if (isEnter && !isShiftEnter) {
+        e.preventDefault();
+        submitBtn.click();
+    }
+});
 
 function scrollToBottom() {
     responseArea.scrollTop = responseArea.scrollHeight;
 }
 
-// UPDATED keydown event listener for Enter/Return to submit the form
-promptInput.addEventListener("keydown", (e) => {
-    const isEnter = e.key === "Enter"; // Check if Enter key is pressed
-    const isCtrlEnter = e.ctrlKey && isEnter; // Check if Ctrl + Enter is pressed
-    const isShiftEnter = e.shiftKey && isEnter; // Check if Shift + Enter is pressed
-
-    if (isEnter && !isShiftEnter) {
-        // If Enter is pressed without Shift, prevent default behavior and trigger submit
-        e.preventDefault(); // Prevent newline creation
-        submitBtn.click(); // Trigger the submit button click
-    }
-    // If Shift + Enter is pressed, allow the default behavior (newline creation)
-});
+// Initialize app
+loadSavedPreferences();
