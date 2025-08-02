@@ -1,4 +1,4 @@
-const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const API_URL = '/api/chat';
 
 // DOM Elements
 const modelSelect = document.getElementById('model-select');
