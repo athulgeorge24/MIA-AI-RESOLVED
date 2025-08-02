@@ -18,6 +18,9 @@
       <select id="model-select" title="Select AI Model">
         <option value="llama3-8b-8192" selected>MIA 2.5o</option>
       </select>
+      <button id="change-key-btn" title="Change API Key">
+        <i class="fas fa-key"></i>
+      </button>
     </div>
   </div>
 
@@ -41,20 +44,6 @@
     </div>
   </div>
 
-  <!-- API key injection for dev -->
-  <script>
-    window.process = { 
-      env: { 
-        GROQ_API_KEY: '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'
-      } 
-    };
-
-    // Load main script
-    const script = document.createElement('script');
-    script.src = 'app.js';
-    document.body.appendChild(script);
-  </script>
-
   <section class="info-section inline-info">
     <h6><a href="#">About Us</a></h6>
     <span class="divider"> | </span>
@@ -65,9 +54,11 @@
     <h6><a href="#">Terms of Service</a></h6>
     <span class="divider"> | </span>
     <h6><a href="#">Contact Us</a></h6>
-
-
   </section>
+
   <p class="powered-text">Powered by: Project De Fake Bot</p>
+
+  <!-- Load main script -->
+  <script src="app.js"></script>
 </body>
 </html>
